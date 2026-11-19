@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Muqeet — AI engineering, explained</title>
+<meta name="description" content="I break down how AI systems actually get built — RAG, embeddings, Docker, background jobs. Short videos, and the projects behind them." />
+<style>
+:root{
+  --bg:#F4EEE4;--bg-2:#EEE7DA;--panel:#FBF8F2;--panel-2:#F1EADD;
+  --line:rgba(28,24,19,.12);--line-strong:rgba(28,24,19,.22);
+  --ink:#1C1813;--ink-dim:#4C443A;--muted:#867A6B;
+  --clay:#B4562F;--clay-soft:#c56c44;--clay-deep:#8A3F21;--on-clay:#FCF8F3;
+  --hero-a:#F8F3EB;--hero-b:#F1E9DC;--media-a:#EFE7DA;--media-b:#F7F2E9;
+  --feat-a:#F8F2E9;--feat-b:#EEE6D8;--feat-media:#EDE4D6;--dot:rgba(28,24,19,.05);
+  --shadow:rgba(28,24,19,.16);
+  --radius:14px;--maxw:1180px;--pad:clamp(20px,5vw,64px);
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1A1612;--bg-2:#211C17;--panel:#25201A;--panel-2:#2E2720;
+  --line:rgba(244,238,228,.12);--line-strong:rgba(244,238,228,.24);
+  --ink:#F4EEE4;--ink-dim:#CFC5B6;--muted:#9C8F7E;
+  --clay:#D0784F;--clay-soft:#DC8B64;--clay-deep:#E9A07C;--on-clay:#1A1612;
+  --hero-a:#1E1914;--hero-b:#171310;--media-a:#2A231C;--media-b:#231D17;
+  --feat-a:#241E18;--feat-b:#1D1813;--feat-media:#2B241D;--dot:rgba(244,238,228,.05);
+  --shadow:rgba(0,0,0,.45);
+}}
+:root[data-theme="dark"]{
+  --bg:#1A1612;--bg-2:#211C17;--panel:#25201A;--panel-2:#2E2720;
+  --line:rgba(244,238,228,.12);--line-strong:rgba(244,238,228,.24);
+  --ink:#F4EEE4;--ink-dim:#CFC5B6;--muted:#9C8F7E;
+  --clay:#D0784F;--clay-soft:#DC8B64;--clay-deep:#E9A07C;--on-clay:#1A1612;
+  --hero-a:#1E1914;--hero-b:#171310;--media-a:#2A231C;--media-b:#231D17;
+  --feat-a:#241E18;--feat-b:#1D1813;--feat-media:#2B241D;--dot:rgba(244,238,228,.05);
+  --shadow:rgba(0,0,0,.45);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img,video{max-width:100%;display:block}
+h1,h2,h3{margin:0;font-family:var(--serif);font-weight:400;line-height:1.03;letter-spacing:-.01em}
+:focus-visible{outline:2px solid var(--clay);outline-offset:3px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--clay)}
+.section{padding-block:clamp(64px,10vw,120px)}
+.rule{height:1px;background:var(--line);border:0;margin:0}
+.btn{display:inline-flex;align-items:center;gap:.5em;font-family:var(--sans);font-weight:500;font-size:15px;padding:13px 22px;border-radius:999px;border:1px solid var(--line-strong);transition:transform .2s,background .2s,color .2s,border-color .2s;cursor:pointer}
+.btn--solid{background:var(--clay);color:var(--on-clay);border-color:var(--clay)}
+.btn--solid:hover{background:var(--clay-soft);transform:translateY(-2px)}
+.btn--ghost{background:transparent;color:var(--ink)}
+.btn--ghost:hover{background:var(--panel-2);transform:translateY(-2px)}
+
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
+.nav__in{display:flex;align-items:center;justify-content:space-between;height:66px;position:relative}
+.brand{font-family:var(--serif);font-size:20px;letter-spacing:-.02em}
+.nav__links{display:flex;align-items:center;gap:26px;font-size:15px;color:var(--ink-dim)}
+.nav__links a:hover{color:var(--ink)}
+.nav__menu-btn{display:none;background:none;border:0;color:var(--ink);font-size:26px;cursor:pointer;padding:6px}
+.dd{position:relative}
+.dd__t{display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.dd__t:hover{color:var(--ink)}
+.dd__p{position:absolute;top:130%;left:50%;transform:translateX(-50%) translateY(6px);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;min-width:220px;opacity:0;visibility:hidden;transition:.18s;box-shadow:0 20px 50px var(--shadow)}
+.dd:hover .dd__p,.dd:focus-within .dd__p{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.dd__p a{display:block;padding:9px 12px;border-radius:8px;color:var(--ink-dim);font-size:14px}
+.dd__p a:hover{background:var(--panel-2);color:var(--ink)}
+
+.hero{position:relative;overflow:hidden}
+.hero__bg{position:absolute;inset:0;background:radial-gradient(120% 90% at 82% 0%,color-mix(in srgb,var(--clay) 13%,transparent),transparent 55%),radial-gradient(90% 80% at 0% 100%,color-mix(in srgb,var(--clay) 7%,transparent),transparent 60%),linear-gradient(180deg,var(--hero-a),var(--hero-b))}
+.hero__bg::after{content:"";position:absolute;inset:0;opacity:.6;background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:4px 4px}
+.hero__in{position:relative;padding-top:clamp(48px,9vw,96px);padding-bottom:clamp(56px,9vw,110px)}
+.hero h1{font-size:clamp(46px,9vw,104px);letter-spacing:-.03em;max-width:14ch}
+.hero h1 em{color:var(--clay)}
+.hero__lede{margin-top:26px;max-width:52ch;font-size:clamp(17px,2.1vw,21px);color:var(--ink-dim)}
+.hero__cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
+.hero__stats{display:flex;flex-wrap:wrap;gap:10px 30px;margin-top:46px;font-size:15px;color:var(--muted);font-family:var(--mono)}
+.hero__stats b{color:var(--ink)}
+.hero__stats span{white-space:nowrap}
+
+.marq-block{padding-block:clamp(34px,6vw,54px);border-block:1px solid var(--line);background:var(--bg-2)}
+.marq-label{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:22px}
+.marq{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marq__track{display:flex;gap:56px;width:max-content;animation:scroll 42s linear infinite}
+.marq:hover .marq__track{animation-play-state:paused}
+.marq__track span{font-family:var(--serif);font-size:22px;color:var(--ink-dim);white-space:nowrap;opacity:.85}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+.shead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:40px;flex-wrap:wrap}
+.shead h2{font-size:clamp(30px,4.4vw,48px)}
+.shead p{color:var(--ink-dim);max-width:48ch;margin:.6em 0 0}
+.shead .eyebrow{margin-bottom:14px;display:block}
+.seeall{font-family:var(--mono);font-size:13px;color:var(--clay);white-space:nowrap}
+.seeall:hover{color:var(--clay-deep)}
+
+.vrow{position:relative}
+.vtrack{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 10px;scrollbar-width:none}
+.vtrack::-webkit-scrollbar{display:none}
+.vcard2{flex:0 0 clamp(240px,72vw,300px);scroll-snap-align:start;display:block}
+.vcard2__media{position:relative;aspect-ratio:4/5;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(150deg,var(--media-a),var(--media-b));transition:transform .3s,box-shadow .3s}
+.vcard2:hover .vcard2__media{transform:translateY(-4px);box-shadow:0 18px 40px var(--shadow)}
+.vcard2__media video,.vcard2__media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vcard2__ph{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(80% 60% at 50% 30%,color-mix(in srgb,var(--clay) 15%,transparent),transparent 60%)}
+.vcard2__ph small{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.12em}
+.vcard2__grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(20,14,10,.78),rgba(20,14,10,.15) 45%,transparent 62%)}
+.vcard2__cap{position:absolute;left:16px;right:16px;bottom:15px;color:#FCF8F3}
+.vcard2__eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(252,248,243,.82)}
+.vcard2__title{font-weight:700;font-size:15.5px;line-height:1.25;margin-top:6px}
+.vcard2__sub{font-family:var(--mono);font-size:11.5px;color:rgba(252,248,243,.72);margin-top:4px}
+.vcard2__play{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:999px;display:grid;place-items:center;background:rgba(252,248,243,.88);font-size:12px;color:#B4562F;transition:.25s}
+.vcard2:hover .vcard2__play{background:#B4562F;color:#FCF8F3}
+.varrow{position:absolute;top:calc(50% - 20px);width:40px;height:40px;border-radius:999px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line-strong);color:var(--ink);cursor:pointer;z-index:3;box-shadow:0 8px 22px var(--shadow);font-size:16px}
+.varrow:hover{background:var(--clay);color:var(--on-clay);border-color:var(--clay)}
+.varrow--prev{left:-8px}.varrow--next{right:-8px}
+@media(max-width:640px){.varrow{display:none}}
+.ig-note{margin-top:26px;font-family:var(--mono);font-size:12.5px;color:var(--muted);border:1px dashed var(--line-strong);border-radius:12px;padding:14px 16px;line-height:1.7}
+.ig-note b{color:var(--ink)}
+
+.bigstats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.bigstats div{background:var(--bg);padding:34px 26px}
+.bigstats .n{font-family:var(--serif);font-size:clamp(34px,5vw,52px);color:var(--clay);letter-spacing:-.02em}
+.bigstats .l{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em;margin-top:8px;text-transform:uppercase}
+
+.split{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,64px);align-items:center}
+.split h2{font-size:clamp(30px,4.6vw,50px);max-width:14ch}
+.split h2 em{color:var(--clay)}
+.split p{color:var(--ink-dim);margin:1em 0 0;max-width:44ch}
+.split__img{aspect-ratio:4/5;border-radius:var(--radius);border:1px solid var(--line);background:linear-gradient(150deg,#C98A5E,#9A5230);position:relative;overflow:hidden}
+.split__img::after{content:"REPLACE / your photo";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:rgba(252,248,243,.85)}
+
+.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.pcard{display:flex;flex-direction:column;gap:14px;padding:26px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);transition:transform .25s,border-color .25s}
+.pcard:hover{transform:translateY(-4px);border-color:var(--line-strong)}
+.pcard__top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pcard h3{font-family:var(--sans);font-weight:700;font-size:20px;letter-spacing:0}
+.pcard__arrow{font-size:18px;color:var(--clay);transition:transform .25s}
+.pcard:hover .pcard__arrow{transform:translate(3px,-3px)}
+.pcard p{color:var(--ink-dim);font-size:15px;margin:0}
+.pcard__tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.tag{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);padding:4px 9px;border-radius:999px}
+
+.feature{border-radius:20px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(150deg,var(--feat-a),var(--feat-b));display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(24px,4vw,48px)}
+.feature__txt{padding:clamp(30px,4vw,52px)}
+.feature__txt h2{font-size:clamp(28px,4vw,42px);max-width:16ch}
+.feature__txt p{color:var(--ink-dim);margin:1em 0 1.6em;max-width:42ch}
+.feature__media{aspect-ratio:4/3;min-height:100%;background:radial-gradient(70% 60% at 60% 40%,color-mix(in srgb,var(--clay) 17%,transparent),transparent 60%),var(--feat-media)}
+.live-dot{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:#D64535;text-transform:uppercase}
+.live-dot::before{content:"";width:8px;height:8px;border-radius:99px;background:#D64535;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(214,69,53,.5)}70%{box-shadow:0 0 0 10px rgba(214,69,53,0)}100%{box-shadow:0 0 0 0 rgba(214,69,53,0)}}
+
+.news{text-align:center;max-width:600px;margin-inline:auto}
+.news h2{font-size:clamp(30px,4.4vw,46px)}
+.news p{color:var(--ink-dim);margin:.7em auto 1.8em;max-width:42ch}
+.news form{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.news input{background:var(--panel);border:1px solid var(--line-strong);border-radius:999px;padding:13px 20px;color:var(--ink);font-family:var(--sans);font-size:15px;min-width:min(260px,100%)}
+.news input::placeholder{color:var(--muted)}
+.news .ok{color:var(--clay);font-family:var(--mono);font-size:14px;margin-top:16px;display:none}
+
+.foot{border-top:1px solid var(--line);padding-block:48px 40px;background:var(--bg-2)}
+.foot__nav{display:flex;flex-wrap:wrap;gap:14px 26px;font-size:14px;color:var(--ink-dim)}
+.foot__nav a:hover{color:var(--ink)}
+.foot__base{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:28px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+@media(max-width:900px){
+  .split{grid-template-columns:1fr}.split__img{max-width:420px}
+  .pgrid{grid-template-columns:1fr}
+  .feature{grid-template-columns:1fr}.feature__media{min-height:260px}
+  .bigstats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  .nav__links{display:none}.nav__menu-btn{display:block}
+  .nav__links.open{display:flex;position:absolute;top:66px;left:calc(-1*var(--pad));right:calc(-1*var(--pad));flex-direction:column;align-items:flex-start;background:var(--panel);border-bottom:1px solid var(--line);padding:18px var(--pad);gap:16px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="brand" href="#top"><b>muqeet</b></a>
+    <nav class="nav__links" id="navlinks">
+      <a href="#videos">videos</a>
+      <a href="#projects">projects</a>
+      <div class="dd">
+        <span class="dd__t" tabindex="0">work ▾</span>
+        <div class="dd__p"><a href="#projects">Projects</a><a href="#about">About</a><a href="#newsletter">Newsletter</a></div>
+      </div>
+      <a href="#about">about</a>
+      <a class="btn btn--ghost" href="#newsletter" style="padding:9px 16px;font-size:14px">Get updates</a>
+    </nav>
+    <button class="nav__menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="hero__bg"></div>
+  <div class="wrap hero__in">
+    <h1>Build in silence.<br><em>Arrive loud.</em></h1>
+    <p class="hero__lede">I'm Muqeet — I break down how AI systems actually get built: RAG, embeddings, Docker, background jobs. Short, practical videos, and the projects behind them.</p>
+    <div class="hero__cta">
+      <a class="btn btn--solid" href="#videos">Watch the videos →</a>
+      <a class="btn btn--ghost" href="#projects">See what I've shipped</a>
+    </div>
+    <div class="hero__stats">
+      <span><b>[X]M+</b> views</span>
+      <span><b>[X]+</b> videos</span>
+      <span><b>[X]</b> projects shipped</span>
+    </div>
+  </div>
+</section>
+
+<section class="marq-block">
+  <div class="marq-label">Built with</div>
+  <div class="marq">
+    <div class="marq__track" id="marqTrack">
+      <span>Python</span><span>Claude API</span><span>PyMuPDF</span><span>RAG</span>
+      <span>Embeddings</span><span>Docker</span><span>React</span><span>Vector DBs</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="videos">
+  <div class="wrap">
+    <div class="shead">
+      <div>
+        <span class="eyebrow">Straight from the feed</span>
+        <h2>Latest videos.</h2>
+        <p>Short-form on how AI systems get built. Hover any card to preview — tap to watch the full reel.</p>
+      </div>
+      <a class="seeall" href="https://www.instagram.com/muqeet.archive/" target="_blank" rel="noopener">@muqeet.archive →</a>
+    </div>
+    <div class="vrow">
+      <button class="varrow varrow--prev" id="vPrev" aria-label="Previous">‹</button>
+      <div class="vtrack" id="vtrack"></div>
+      <button class="varrow varrow--next" id="vNext" aria-label="Next">›</button>
+    </div>
+    <p class="ig-note"><b>To make these play like the reference:</b> download each reel from Instagram (open a reel → ⋯ → Save), then upload the clips. They'll be embedded so each card shows its thumbnail and plays a preview on hover. Right now each card links out to its reel.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section class="section">
+  <div class="wrap">
+    <div class="bigstats">
+      <div><div class="n">[X]M+</div><div class="l">total views</div></div>
+      <div><div class="n">[X]K</div><div class="l">followers</div></div>
+      <div><div class="n">[X]+</div><div class="l">projects shipped</div></div>
+      <div><div class="n">[X]</div><div class="l">years building</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section class="section" id="about">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow">The throughline</span>
+      <h2 style="margin-top:16px">I build AI systems, then I <em>make videos</em> about how they work.</h2>
+      <p>[Two or three sentences on your story — what you build, who your videos are for, and why anyone should follow along.]</p>
+      <p style="margin-top:22px"><a class="btn btn--ghost" href="#projects">Read more →</a></p>
+    </div>
+    <div class="split__img"></div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section class="section" id="projects">
+  <div class="wrap">
+    <div class="shead">
+      <div>
+        <span class="eyebrow">Deployed &amp; live</span>
+        <h2>Projects.</h2>
+        <p>Things I've actually shipped — not concepts. Each links to the live build.</p>
+      </div>
+    </div>
+    <div class="pgrid">
+      <a class="pcard" href="#" target="_blank" rel="noopener">
+        <div class="pcard__top"><h3>InvestIQ</h3><span class="pcard__arrow">↗</span></div>
+        <p>AI analyst for financial filings. Upload a 10-Q or 10-K and get instant insights — revenue, risks, key takeaways — plus a chat to interrogate the document.</p>
+        <div class="pcard__tags"><span class="tag">In progress</span><span class="tag">Python</span><span class="tag">PyMuPDF</span><span class="tag">Claude API</span><span class="tag">React</span></div>
+      </a>
+      <a class="pcard" href="#" target="_blank" rel="noopener">
+        <div class="pcard__top"><h3>[Project Two]</h3><span class="pcard__arrow">↗</span></div>
+        <p>[One line on what it does and who it's for.]</p>
+        <div class="pcard__tags"><span class="tag">Live</span><span class="tag">React</span></div>
+      </a>
+      <a class="pcard" href="#" target="_blank" rel="noopener">
+        <div class="pcard__top"><h3>[Project Three]</h3><span class="pcard__arrow">↗</span></div>
+        <p>[One line on what it does and who it's for.]</p>
+        <div class="pcard__tags"><span class="tag">Open source</span><span class="tag">TypeScript</span></div>
+      </a>
+      <a class="pcard" href="#" target="_blank" rel="noopener">
+        <div class="pcard__top"><h3>[Project Four]</h3><span class="pcard__arrow">↗</span></div>
+        <p>[One line on what it does and who it's for.]</p>
+        <div class="pcard__tags"><span class="tag">Beta</span><span class="tag">Python</span></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section class="section">
+  <div class="wrap">
+    <div class="feature">
+      <div class="feature__txt">
+        <span class="live-dot">Currently building</span>
+        <h2 style="margin-top:16px">InvestIQ — the RAG pipeline, in the open.</h2>
+        <p>Turning raw financial filings into an AI analyst: PDF → markdown → chunks → embeddings → retrieval → answers. I'm documenting each stage as I build it.</p>
+        <a class="btn btn--solid" href="#">Follow along →</a>
+      </div>
+      <div class="feature__media"></div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section class="section" id="newsletter">
+  <div class="wrap news">
+    <span class="eyebrow">Stay in the loop</span>
+    <h2 style="margin-top:14px">One email when I ship.</h2>
+    <p>New videos and new projects, straight to your inbox. No spam, unsubscribe anytime.</p>
+    <form id="newsForm">
+      <input type="email" placeholder="you@email.com" aria-label="Email" required>
+      <button class="btn btn--solid" type="submit">Subscribe</button>
+    </form>
+    <div class="ok" id="newsOk">You're in — check your inbox.</div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <nav class="foot__nav">
+      <a href="#top">Home</a><a href="#videos">Videos</a><a href="#projects">Projects</a>
+      <a href="#about">About</a><a href="#newsletter">Newsletter</a>
+      <a href="https://www.instagram.com/muqeet.archive/" target="_blank" rel="noopener">Instagram</a>
+      <a href="#" target="_blank" rel="noopener">YouTube</a>
+      <a href="#" target="_blank" rel="noopener">X / Twitter</a>
+      <a href="#" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <div class="foot__base"><span>© 2026 Muqeet</span><span>Build in silence · Arrive loud</span></div>
+  </div>
+</footer>
+
+<script>
+/* YOUR VIDEOS — add poster (image) and src (mp4) to get hover previews */
+const VIDEOS = [
+  {title:"Why do we need Docker?", sub:"@muqeet.archive", label:"Reel", href:"https://www.instagram.com/reel/DcilRF-PGec/", poster:"", src:""},
+  {title:"RAG loaders, explained", sub:"@muqeet.archive", label:"Reel", href:"https://www.instagram.com/reel/DcddXinhE4S/", poster:"", src:""},
+  {title:"What are background jobs?", sub:"@muqeet.archive", label:"Reel", href:"https://www.instagram.com/reel/Dcaya2yRVTz/", poster:"", src:""},
+  {title:"Embeddings vs vectors in AI", sub:"@muqeet.archive", label:"Reel", href:"https://www.instagram.com/reel/Dbsp80uPqIK/", poster:"", src:""},
+  {title:"How RAG works", sub:"@muqeet.archive", label:"Reel", href:"https://www.instagram.com/reel/DbNQn9WxWGc/", poster:"", src:""},
+];
+
+const menuBtn=document.getElementById('menuBtn'),navlinks=document.getElementById('navlinks');
+menuBtn.addEventListener('click',()=>navlinks.classList.toggle('open'));
+navlinks.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>navlinks.classList.remove('open')));
+
+const t=document.getElementById('marqTrack');t.innerHTML+=t.innerHTML;
+
+(function(){
+  const track=document.getElementById('vtrack');
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  track.innerHTML=VIDEOS.map((v,i)=>{
+    const media=v.src
+      ?'<video src="'+esc(v.src)+'" '+(v.poster?'poster="'+esc(v.poster)+'" ':'')+'muted loop playsinline preload="metadata"></video>'
+      :(v.poster?'<img src="'+esc(v.poster)+'" alt="'+esc(v.title)+'">':'<div class="vcard2__ph"><small>REEL 0'+(i+1)+'</small></div>');
+    return '<a class="vcard2" href="'+esc(v.href)+'" target="_blank" rel="noopener" data-vid><div class="vcard2__media">'+media+
+      '<span class="vcard2__play">▶</span><div class="vcard2__grad"></div><div class="vcard2__cap">'+
+      '<div class="vcard2__eyebrow">'+esc(v.label||'Reel')+'</div><div class="vcard2__title">'+esc(v.title)+'</div>'+
+      '<div class="vcard2__sub">'+esc(v.sub||'')+'</div></div></div></a>';
+  }).join('');
+  track.querySelectorAll('[data-vid]').forEach(card=>{
+    const v=card.querySelector('video');if(!v)return;
+    card.addEventListener('mouseenter',()=>{v.play().catch(()=>{});});
+    card.addEventListener('mouseleave',()=>{v.pause();v.currentTime=0;});
+  });
+  const step=()=>{const c=track.querySelector('.vcard2');return c?c.getBoundingClientRect().width+20:320;};
+  document.getElementById('vPrev').addEventListener('click',()=>track.scrollBy({left:-step(),behavior:'smooth'}));
+  document.getElementById('vNext').addEventListener('click',()=>track.scrollBy({left:step(),behavior:'smooth'}));
+})();
+
+const f=document.getElementById('newsForm');
+f.addEventListener('submit',e=>{e.preventDefault();document.getElementById('newsOk').style.display='block';f.reset();});
+</script>
+</body>
+</html>
